@@ -1,6 +1,6 @@
 #if 0
 #define HARDWARE_TEST
-#define F_TEST 82.3
+#define F_TEST 110.0
 # endif
 
 #include <Audio.h>
@@ -35,14 +35,18 @@ AudioConnection          patchCord6(mixer1, dac1);
 // GUItool: end automatically generated code
 
 #include <Arduino.h>
-//#include <shiftRegister.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include "Adafruit_LEDBackpack.h"
 #include <shiftRegisterSPI.h>
 #include <StringDetection.h>
 #include "Outside.h"
 #include "DigitsSmall.h"
 
-const float stringFrequencies[6] = {82.41,110.0,146.83,196,246.94,329.63};
-int idString = 4;
+Adafruit_AlphaNum4 alpha4 = Adafruit_AlphaNum4();
+
+//const float stringFrequencies[6] = {82.41,110.0,146.83,196,246.94,329.63};
+int idTone = 4;
 bool precisionMode = true;
 
 // timer for shift register
@@ -62,7 +66,7 @@ unsigned char DIGITS_Trans[DIGITS_LEN][8];
 void strobeCallback(){
   if ((yCoordinate[loopCount]>1) & (yCoordinate[loopCount]<8)){
     shiftRegisters.shiftOutSPI(
-      (xByte[loopCount] //+ DIGITS[idString][9 - yCoordinate[loopCount]]
+      (xByte[loopCount] //+ DIGITS[idTone][9 - yCoordinate[loopCount]]
       ),
       ~yByte[loopCount]
     );
@@ -70,7 +74,7 @@ void strobeCallback(){
   else {
     shiftRegisters.shiftOutSPI(
       (xByte[loopCount]),
-      ~(yByte[loopCount]) // + DIGITS_Trans[idString][9 - xCoordinate[loopCount]])
+      ~(yByte[loopCount]) // + DIGITS_Trans[idTone][9 - xCoordinate[loopCount]])
     );
   }
 
@@ -109,15 +113,24 @@ void letterCallback(){
   }
 
   shiftRegisters.shiftOutSPI(
-    ~(DIGITS[idString][rowCount] + ((rowIndexDeviation==rowCount) ? 1 : 0)),
+    ~(DIGITS[idTone][rowCount] + ((rowIndexDeviation==rowCount) ? 1 : 0)),
       0b10000000>>rowCount);
   if (++rowCount >= 8){
     rowCount = 0;
   }
 }
 
-void setString(int idString){
-  float fSet = stringFrequencies[idString];
+void setString(int idTone){
+  float fSet;
+  switch (getTunerMode()){
+    case MODE_GUITAR:
+      fSet = stringFrequencies[idTone];
+      break;
+    case MODE_CHROMATIC:
+      fSet = toneFrequencies[idTone];
+      break;
+  }
+
   float Q = 0.7;
   shiftTimer.end();
   if (precisionMode){
@@ -126,6 +139,14 @@ void setString(int idString){
     mixer1.gain(1, 0.0);
     filter1.frequency(fSet);
     filter1.resonance(Q);
+    // alphanumeric display
+    int digit1 = (idTone+1)/10;
+    int digit2 = (idTone+1)%10;
+    alpha4.writeDigitAscii(0, '0'+digit1);
+    alpha4.writeDigitAscii(1, '0'+digit2);
+    alpha4.writeDigitAscii(2, ' ');
+    alpha4.writeDigitAscii(3, ' ');
+    alpha4.writeDisplay();
     shiftTimer.begin(strobeCallback, (long)1/fSet/N_LED*1000000);
   }
   else{
@@ -134,6 +155,17 @@ void setString(int idString){
     mixer1.gain(1, 1.0);
     shiftTimer.begin(letterCallback, (long)1/1000.*1000000);
   }
+}
+
+float averageFrequency(float frequency[], float probability[]){
+  // assumes that arrays are size 10
+  float sumFreq = 0, sumProb = 0;
+  const int N = 10;
+  for (int id=0; id < N; id++){
+    sumFreq += frequency[id]*probability[id];
+    sumProb += probability[id];
+  }
+  return sumFreq/sumProb;
 }
 
 int main(void) {
@@ -150,26 +182,46 @@ int main(void) {
   dc1.amplitude(-1.0);
   mixer1.gain(0, 2.0);
   mixer1.gain(1, 0.0);
-  notefreq1.begin(0.2);
+  notefreq1.begin(0.15);
+  // init alphanumeric display
+  alpha4.begin(0x70);
+  // display every character,
+  alpha4.writeDigitAscii(0, 'R');
+  alpha4.writeDigitAscii(1, 'O');
+  alpha4.writeDigitAscii(2, 'C');
+  alpha4.writeDigitAscii(3, 'K');
+  alpha4.writeDisplay();
   // set analog reference to 3.3 V
   dac1.analogReference(EXTERNAL);
   // setup initial string
-  setString(idString);
+  setString(idTone);
+  // setup tuner mode
+  setTunerMode(MODE_CHROMATIC);
   // load transposed Digits
   transposeDigits(DIGITS_Trans);
   // bit bitOrder
   if (~precisionMode){
     shiftRegisters.setBitOrder(LSBFIRST);
   }
+  // frequency and prbability buffers
+  // float frequencyBuffer[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+  // float probabilityBuffer[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+  // unsigned int idBuffer = 0;
   // loop
   while (true){
     if (notefreq1.available()){
-      frequencyEstimate = notefreq1.read();
-      idString = estimateString(frequencyEstimate);
-      if (stringHasChanged()){
-        // change value for shiftTimer
-        setString(idString);
-        Serial.println(idString);
+      // frequencyBuffer[idBuffer] = notefreq1.read();
+      // probabilityBuffer[idBuffer] = notefreq1.probability();
+      // if (probabilityBuffer[idBuffer]<0.6) probabilityBuffer[idBuffer] = 0.;
+      // if (++idBuffer>=10) idBuffer = 0;
+      // frequencyEstimate = averageFrequency(frequencyBuffer, probabilityBuffer);
+      if (notefreq1.probability() > 0.98){
+        frequencyEstimate = notefreq1.read();
+        idTone = estimateTone(frequencyEstimate);
+        if (stringHasChanged()){
+          // change value for shiftTimer
+          setString(idTone);
+        }
       }
     }
     else {
