@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "effect_sign.h"
 
-#define ZERO 300
+#define ZERO 400
 
 void AudioEffectSign::update(void)
 {

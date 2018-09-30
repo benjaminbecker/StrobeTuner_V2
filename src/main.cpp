@@ -1,6 +1,6 @@
 #if 0
 #define HARDWARE_TEST
-#define F_TEST 110.0
+#define F_TEST 466.0
 # endif
 
 #include <Audio.h>
@@ -16,6 +16,7 @@ AudioSynthWaveformSine  adc1;
 #else
 AudioInputAnalog         adc1;           //xy=78,342
 #endif
+AudioAnalyzeRMS          rms1;           //xy=391,147
 AudioSynthWaveformDc     dc1;
 AudioEffectSign          waveshape1;     //xy=249,359
 AudioAnalyzeNoteFrequency notefreq1;      //xy=372,244
@@ -24,6 +25,7 @@ AudioMixer4              mixer1;         //xy=549,312
 AudioOutputAnalog        dac1;           //xy=690,304
 // AudioOutputUSB           usb2;
 AudioConnection          patchCord1(adc1, notefreq1);
+AudioConnection          patchCord7(adc1, rms1);
 AudioConnection          patchCord2(adc1, 0, waveshape1, 0);
 AudioConnection          patchCord3(waveshape1, 0, filter1, 0);
 AudioConnection          patchCord4(filter1, 1, mixer1, 0);
@@ -62,6 +64,16 @@ unsigned int rowCount = 0;
 unsigned char rowIndexDeviation = 0;
 
 unsigned char DIGITS_Trans[DIGITS_LEN][8];
+
+// states for finite state machine
+// tuner
+const unsigned char STATE_STROBE_TUNER = 1;
+// settings main menu
+const unsigned char STATE_MAIN_MENU = 2;
+// settings tunings
+const unsigned char STATE_SETTINGS_TUNINGS = 3;
+// settings f0
+const unsigned char STATE_SETTING_FREQUENCY_BASE = 4;
 
 void strobeCallback(){
   if ((yCoordinate[loopCount]>1) & (yCoordinate[loopCount]<8)){
@@ -140,10 +152,17 @@ void setString(int idTone){
     filter1.frequency(fSet);
     filter1.resonance(Q);
     // alphanumeric display
-    int digit1 = (idTone+1)/10;
-    int digit2 = (idTone+1)%10;
-    alpha4.writeDigitAscii(0, '0'+digit1);
-    alpha4.writeDigitAscii(1, '0'+digit2);
+    switch (getTunerMode()){
+      case MODE_GUITAR:
+        alpha4.writeDigitAscii(0, stringNames[idTone][0]);
+        alpha4.writeDigitAscii(1, stringNames[idTone][1]);
+        break;
+      case MODE_CHROMATIC:
+        alpha4.writeDigitAscii(0, noteNames[idTone][0]);
+        alpha4.writeDigitAscii(1, noteNames[idTone][1]);
+        break;
+    }
+
     alpha4.writeDigitAscii(2, ' ');
     alpha4.writeDigitAscii(3, ' ');
     alpha4.writeDisplay();
@@ -155,6 +174,16 @@ void setString(int idTone){
     mixer1.gain(1, 1.0);
     shiftTimer.begin(letterCallback, (long)1/1000.*1000000);
   }
+}
+
+void switchOffMatrix(){
+  mixer1.gain(0, 0.0);
+  mixer1.gain(1, 1.0);
+}
+
+void switchOnMatrix(){
+  mixer1.gain(0, 2.0);
+  mixer1.gain(1, 0.0);
 }
 
 float averageFrequency(float frequency[], float probability[]){
@@ -169,10 +198,6 @@ float averageFrequency(float frequency[], float probability[]){
 }
 
 int main(void) {
-  // start serial connection
-  // Serial.begin(9600);
-  // pinMode(LED_BUILTIN, OUTPUT);
-  // digitalWrite(LED_BUILTIN, HIGH);
   // setup for Audio sketch
   AudioMemory(30); // was 20
   #ifdef HARDWARE_TEST
@@ -186,35 +211,33 @@ int main(void) {
   // init alphanumeric display
   alpha4.begin(0x70);
   // display every character,
-  alpha4.writeDigitAscii(0, 'R');
-  alpha4.writeDigitAscii(1, 'O');
-  alpha4.writeDigitAscii(2, 'C');
-  alpha4.writeDigitAscii(3, 'K');
+  alpha4.writeDigitAscii(0, 'O');
+  alpha4.writeDigitAscii(1, 'p');
+  alpha4.writeDigitAscii(2, ' ');
+  alpha4.writeDigitAscii(3, 'G');
   alpha4.writeDisplay();
+  //delay(10000);
   // set analog reference to 3.3 V
   dac1.analogReference(EXTERNAL);
+  // setup tuner mode
+  //setTunerMode(MODE_CHROMATIC);
+  setTunerMode(MODE_CHROMATIC);
   // setup initial string
   setString(idTone);
-  // setup tuner mode
-  setTunerMode(MODE_CHROMATIC);
   // load transposed Digits
   transposeDigits(DIGITS_Trans);
   // bit bitOrder
   if (~precisionMode){
     shiftRegisters.setBitOrder(LSBFIRST);
   }
-  // frequency and prbability buffers
-  // float frequencyBuffer[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
-  // float probabilityBuffer[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
-  // unsigned int idBuffer = 0;
+  float minSignalRms = 0.02;
   // loop
   while (true){
+    if (rms1.available()){
+      if (rms1.read() > minSignalRms) switchOnMatrix();
+      else switchOffMatrix();
+    }
     if (notefreq1.available()){
-      // frequencyBuffer[idBuffer] = notefreq1.read();
-      // probabilityBuffer[idBuffer] = notefreq1.probability();
-      // if (probabilityBuffer[idBuffer]<0.6) probabilityBuffer[idBuffer] = 0.;
-      // if (++idBuffer>=10) idBuffer = 0;
-      // frequencyEstimate = averageFrequency(frequencyBuffer, probabilityBuffer);
       if (notefreq1.probability() > 0.98){
         frequencyEstimate = notefreq1.read();
         idTone = estimateTone(frequencyEstimate);
@@ -223,9 +246,6 @@ int main(void) {
           setString(idTone);
         }
       }
-    }
-    else {
-      //Serial.println("Nothing detected...");
     }
   }
 }
