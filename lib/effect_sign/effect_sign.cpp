@@ -11,7 +11,7 @@ void AudioEffectSign::update(void)
 
   int16_t i;
   for (i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
-    block->data[i] = ((block->data[i] > ZERO) - (block->data[i] < -ZERO)) * 32767;
+    block->data[i] = ((block->data[i] < ZERO) - (block->data[i] > -ZERO)) * 32767;
   }
 
   transmit(block);

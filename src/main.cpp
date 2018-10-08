@@ -8,7 +8,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include <SerialFlash.h>
-#include <effect_sign.h>
+#include "effect_sign.h"
 
 // GUItool: begin automatically generated code
 #ifdef HARDWARE_TEST
@@ -23,17 +23,20 @@ AudioAnalyzeNoteFrequency notefreq1;      //xy=372,244
 AudioFilterStateVariable filter1;        //xy=403,345
 AudioMixer4              mixer1;         //xy=549,312
 AudioOutputAnalog        dac1;           //xy=690,304
-// AudioOutputUSB           usb2;
+//AudioOutputUSB           usb2;
 AudioConnection          patchCord1(adc1, notefreq1);
 AudioConnection          patchCord7(adc1, rms1);
-AudioConnection          patchCord2(adc1, 0, waveshape1, 0);
-AudioConnection          patchCord3(waveshape1, 0, filter1, 0);
-AudioConnection          patchCord4(filter1, 1, mixer1, 0);
+// AudioConnection          patchCord2(adc1, 0, waveshape1, 0);
+// AudioConnection          patchCord3(waveshape1, 0, filter1, 0);
+// AudioConnection          patchCord4(filter1, 1, mixer1, 0);
+AudioConnection          patchCord2(adc1, 0, filter1, 0);
+AudioConnection          patchCord3(filter1, 1, waveshape1, 0);
+AudioConnection          patchCord4(waveshape1, 0, mixer1, 0);
 //AudioConnection          patchCord4(waveshape1, 0, dac1, 0);
 AudioConnection          patchCord5(dc1, 0, mixer1, 1);
 AudioConnection          patchCord6(mixer1, dac1);
-// AudioConnection          patchCord7(mixer1, 0, usb2, 0);
-// AudioConnection          patchCord8(mixer1, 0, usb2, 1);
+//AudioConnection          patchCord8(adc1, 0, usb2, 0);
+//AudioConnection          patchCord9(mixer1, 0, usb2, 1);
 // GUItool: end automatically generated code
 
 #include <Arduino.h>
@@ -199,12 +202,12 @@ float averageFrequency(float frequency[], float probability[]){
 
 int main(void) {
   // setup for Audio sketch
-  AudioMemory(30); // was 20
+  AudioMemory(60); // was 30
   #ifdef HARDWARE_TEST
   adc1.frequency(F_TEST);
   adc1.amplitude(0.5);
   #endif
-  dc1.amplitude(-1.0);
+  dc1.amplitude(1.0);
   mixer1.gain(0, 2.0);
   mixer1.gain(1, 0.0);
   notefreq1.begin(0.15);
