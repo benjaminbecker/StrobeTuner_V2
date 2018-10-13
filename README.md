@@ -2,7 +2,8 @@
 
 In this project I built a **guitar tuner** similar to a strobe tuner. A strobe tuner uses a strobe triggered by the positive or negative half-wave of a musical instrument signal. The strobe is used to illuminate a disc which rotates at the desired tuning frequency. The disc has a regular pattern on it which seems to be standing still if the instrument is in tune. If the instrument is out of tune, the pattern seems to rotate clockwise or counter-clockwise depending on the sign of the frequency difference between instrument and reference. Strobe tuners allow for a much higher accuracy than tuners based on autocorrelation etc.
 
-![image of strobe tuner](https://raw.githubusercontent.com/benjaminbecker/StrobeTuner_V2/master/pics/strobe_tuner_prototype.jpg)
+![image of strobe tuner](https://raw.githubusercontent.com/benjaminbecker/StrobeTuner_V2/master/pics/strobe_tuner_prototype.JPG)
+
 
 
 ## Hardware
