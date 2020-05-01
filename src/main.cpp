@@ -138,10 +138,10 @@ void letterCallback(){
 void setString(int idTone){
   float fSet;
   switch (getTunerMode()){
-    case MODE_GUITAR:
+    case GUITAR:
       fSet = stringFrequencies[idTone];
       break;
-    case MODE_CHROMATIC:
+    case CHROMATIC:
       fSet = toneFrequencies[idTone];
       break;
   }
@@ -156,11 +156,11 @@ void setString(int idTone){
     filter1.resonance(Q);
     // alphanumeric display
     switch (getTunerMode()){
-      case MODE_GUITAR:
+      case GUITAR:
         alpha4.writeDigitAscii(0, stringNames[idTone][0]);
         alpha4.writeDigitAscii(1, stringNames[idTone][1]);
         break;
-      case MODE_CHROMATIC:
+      case CHROMATIC:
         alpha4.writeDigitAscii(0, noteNames[idTone][0]);
         alpha4.writeDigitAscii(1, noteNames[idTone][1]);
         break;
@@ -223,8 +223,8 @@ int main(void) {
   // set analog reference to 3.3 V
   dac1.analogReference(EXTERNAL);
   // setup tuner mode
-  //setTunerMode(MODE_CHROMATIC);
-  setTunerMode(MODE_CHROMATIC);
+  //setTunerMode(GUITAR);
+  setTunerMode(CHROMATIC);
   // setup initial string
   setString(idTone);
   // load transposed Digits

@@ -5,7 +5,7 @@
 int currentString = -1;
 int lastString = -1;
 float deviationCents = 0.;
-unsigned char tunerMode = MODE_GUITAR;
+TunerMode tunerMode = GUITAR;
 
 int estimateTone(float frequency){
   // estimate string number based on frequency
@@ -17,20 +17,20 @@ int estimateTone(float frequency){
   int idMin = -1;
   unsigned int nFreq;
   switch (tunerMode){
-    case MODE_GUITAR:
+    case GUITAR:
       nFreq = sizeof(stringFrequencies)/sizeof(stringFrequencies[0]);
       break;
-    case MODE_CHROMATIC:
+    case CHROMATIC:
       nFreq = sizeof(toneFrequencies)/sizeof(toneFrequencies[0]);
       break;
   }
 
   for (unsigned int id=0; id<nFreq; id++){
     switch (tunerMode){
-      case MODE_GUITAR:
+      case GUITAR:
         frequencyRatio = frequency/stringFrequencies[id];
         break;
-      case MODE_CHROMATIC:
+      case CHROMATIC:
         frequencyRatio = frequency/toneFrequencies[id];
         break;
     }
@@ -59,10 +59,10 @@ float getDeviationCents(){
   return deviationCents;
 }
 
-void setTunerMode(unsigned char mode){
+void setTunerMode(TunerMode mode){
   tunerMode = mode;
 }
 
-unsigned char getTunerMode(void){
+TunerMode getTunerMode(void){
   return tunerMode;
 }

@@ -3,8 +3,10 @@
 
 #include <string>
 
-const unsigned char MODE_GUITAR = 0;
-const unsigned char MODE_CHROMATIC = 1;
+enum TunerMode {
+  GUITAR,
+  CHROMATIC,
+};
 
 const float stringFrequencies[6] = {82.41,110.0,146.83,196,246.94,329.63};
 const char stringNames[][3] = {"S1", "S2", "S3", "S4", "S5", "S6"};
@@ -179,7 +181,7 @@ const char noteNames[][3] = {
 int estimateTone(float frequency);
 bool stringHasChanged(void);
 float getDeviationCents(void);
-void setTunerMode(unsigned char mode);
-unsigned char getTunerMode(void);
+void setTunerMode(TunerMode mode);
+TunerMode getTunerMode(void);
 
 #endif
