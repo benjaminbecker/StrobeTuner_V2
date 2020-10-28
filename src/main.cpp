@@ -1,6 +1,6 @@
 #if 0
 #define HARDWARE_TEST
-#define F_TEST 466.0
+#define F_TEST 441.0
 # endif
 
 #include <Audio.h>
@@ -57,7 +57,11 @@ bool precisionMode = true;
 // timer for shift register
 IntervalTimer shiftTimer;
 // shift register controller
-// Teensy 3.6 or 3.2
+// Teensy 3.2 Wiring:
+// 9  -> SRCLR
+// 11 -> SER
+// 13 -> SRCLK
+// 10 -> RCLK
 ShiftRegisterSPI shiftRegisters(9, 10);
 
 float frequencyEstimate;

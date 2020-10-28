@@ -5,7 +5,7 @@
 int currentString = -1;
 int lastString = -1;
 float deviationCents = 0.;
-TunerMode tunerMode = GUITAR;
+TunerMode tunerMode = CHROMATIC;
 
 int estimateTone(float frequency){
   // estimate string number based on frequency
